@@ -1,0 +1,23 @@
+#!/usr/bin/env llmsh
+---
+name: summarize
+description: Summarize a file or text
+model: claude-sonnet-4-5-20250929
+provider: anthropic
+tools:
+  - read_file
+args:
+  - name: file
+    description: The file to summarize
+    required: true
+permissions:
+  - read
+max_turns: 3
+temperature: 0.3
+---
+
+You are a text summarizer. Read the given file and output a concise summary.
+Focus on key points, main ideas, and important details.
+Output only the summary, no preamble.
+
+File to summarize: {{.Args.file}}

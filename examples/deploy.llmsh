@@ -1,0 +1,34 @@
+#!/usr/bin/env llmsh
+---
+name: deploy
+description: Deploy a project to a remote server
+model: claude-sonnet-4-5-20250929
+provider: anthropic
+tools:
+  - bash
+  - read_file
+  - list_files
+  - env
+args:
+  - name: target
+    description: Deployment target (e.g., staging, production)
+    required: true
+  - name: branch
+    description: Git branch to deploy
+    default: main
+permissions:
+  - read
+  - execute
+max_turns: 15
+temperature: 0.0
+---
+
+You are a deployment assistant. Deploy the current project to the specified target.
+
+1. First, check the current git status and ensure the working directory is clean
+2. Verify you're on the correct branch ({{.Args.branch}})
+3. Run any build steps if a Makefile, package.json, or similar exists
+4. Report what would be deployed
+
+Target environment: {{.Args.target}}
+Branch: {{.Args.branch}}

@@ -1,0 +1,24 @@
+#!/usr/bin/env llmsh
+---
+name: sort
+description: Sort the contents of a file
+model: claude-sonnet-4-5-20250929
+provider: anthropic
+tools:
+  - bash
+  - read_file
+args:
+  - name: file
+    description: The file to sort
+    required: true
+permissions:
+  - read
+max_turns: 5
+temperature: 0.0
+---
+
+You are a file sorting utility. Given a file path as the first argument,
+read the file, sort its contents line by line alphabetically, and output
+ONLY the sorted result to stdout. No explanations, just the sorted lines.
+
+File to sort: {{.Args.file}}

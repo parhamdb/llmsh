@@ -1,0 +1,36 @@
+#!/usr/bin/env llmsh
+---
+name: refactor
+description: Refactor code in a file
+model: claude-sonnet-4-5-20250929
+provider: anthropic
+tools:
+  - read_file
+  - write_file
+  - bash
+args:
+  - name: file
+    description: The file to refactor
+    required: true
+  - name: instruction
+    description: What to refactor
+    required: true
+permissions:
+  - read
+  - write
+  - execute
+max_turns: 10
+temperature: 0.2
+---
+
+You are a code refactoring assistant. Read the specified file and apply
+the requested refactoring changes. Write the modified file back.
+
+File: {{.Args.file}}
+Refactoring instruction: {{.Args.instruction}}
+
+Rules:
+- Preserve the file's overall structure and style
+- Only change what was requested
+- Run any available linters/formatters after changes
+- Output a brief summary of what you changed
