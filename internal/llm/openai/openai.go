@@ -64,6 +64,22 @@ func NewOllama(host, model string, opts ...Option) *Provider {
 	return p
 }
 
+// NewOpenRouter creates a provider configured for OpenRouter's OpenAI-compatible API.
+func NewOpenRouter(apiKey, model string, opts ...Option) *Provider {
+	p := &Provider{
+		client: oai.NewClient(
+			option.WithBaseURL("https://openrouter.ai/api/v1"),
+			option.WithAPIKey(apiKey),
+		),
+		model: model,
+		name:  "openrouter",
+	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
+}
+
 func (p *Provider) Name() string { return p.name }
 
 func (p *Provider) SetSystem(system string) { p.system = system }

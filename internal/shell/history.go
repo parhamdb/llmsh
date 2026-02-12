@@ -2,16 +2,16 @@ package shell
 
 import (
 	"os"
-	"path/filepath"
+
+	"github.com/parhamdb/llmsh/internal/config"
 )
 
 // HistoryPath returns the path to the shell history file.
 func HistoryPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
+	dir, _ := config.UserConfigDir()
+	if dir == "" {
 		return ""
 	}
-	dir := filepath.Join(home, ".llmsh")
 	os.MkdirAll(dir, 0755)
-	return filepath.Join(dir, "history")
+	return dir + "/history"
 }

@@ -20,7 +20,7 @@ type Arg struct {
 type Frontmatter struct {
 	Name        string            `yaml:"name,omitempty"`
 	Description string            `yaml:"description,omitempty"`
-	Model       string            `yaml:"model,omitempty"`
+	Model       interface{}       `yaml:"model,omitempty"` // string or []string for fallback list
 	Provider    string            `yaml:"provider,omitempty"`
 	Tools       []string          `yaml:"tools,omitempty"`
 	Args        []Arg             `yaml:"args,omitempty"`

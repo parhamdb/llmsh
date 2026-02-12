@@ -15,6 +15,7 @@ import (
 	anthropicProvider "github.com/parhamdb/llmsh/internal/llm/anthropic"
 	ollamaProvider "github.com/parhamdb/llmsh/internal/llm/ollama"
 	openaiProvider "github.com/parhamdb/llmsh/internal/llm/openai"
+	openrouterProvider "github.com/parhamdb/llmsh/internal/llm/openrouter"
 	"github.com/parhamdb/llmsh/internal/parser"
 	"github.com/parhamdb/llmsh/internal/shell"
 	"github.com/parhamdb/llmsh/internal/template"
@@ -28,12 +29,14 @@ func main() {
 	// CLI flags
 	versionFlag := flag.Bool("version", false, "Print version")
 	modelFlag := flag.String("model", "", "LLM model to use")
-	providerFlag := flag.String("provider", "", "LLM provider (anthropic, openai, ollama)")
+	providerFlag := flag.String("provider", "", "LLM provider (anthropic, openai, ollama, openrouter)")
 	tempFlag := flag.Float64("temp", -1, "Temperature (-1 = use default)")
 	maxTurnsFlag := flag.Int("max-turns", 0, "Maximum agent turns")
 	verboseFlag := flag.Bool("verbose", false, "Verbose output")
 	quietFlag := flag.Bool("quiet", false, "Quiet mode (only final output)")
 	dryRunFlag := flag.Bool("dry-run", false, "Parse and show config without executing")
+	showConfigFlag := flag.Bool("show-config", false, "Show merged config and exit")
+	configFileFlag := flag.String("config", "", "Path to config file")
 	newFlag := flag.String("new", "", "Create a new .llmsh script (optionally specify output filename)")
 	editFlag := flag.String("edit", "", "Edit an existing .llmsh script")
 	flag.Parse()
@@ -45,9 +48,11 @@ func main() {
 
 	// Build CLI config
 	cli := config.CLIConfig{
-		Verbose: *verboseFlag,
-		Quiet:   *quietFlag,
-		DryRun:  *dryRunFlag,
+		Verbose:    *verboseFlag,
+		Quiet:      *quietFlag,
+		DryRun:     *dryRunFlag,
+		ShowConfig: *showConfigFlag,
+		ConfigFile: *configFileFlag,
 	}
 	if *modelFlag != "" {
 		cli.Model = modelFlag
@@ -60,6 +65,16 @@ func main() {
 	}
 	if *maxTurnsFlag > 0 {
 		cli.MaxTurns = maxTurnsFlag
+	}
+
+	// Handle --show-config before mode switch
+	if *showConfigFlag {
+		cfg, err := config.Load(cli, parser.Frontmatter{})
+		if err != nil {
+			fatal("Error loading config: %v", err)
+		}
+		fmt.Fprint(os.Stderr, config.ShowConfig(cfg))
+		os.Exit(0)
 	}
 
 	// Context with signal handling
@@ -128,12 +143,7 @@ func runScript(ctx context.Context, cli config.CLIConfig, scriptPath string, scr
 	cfg.System = rendered
 
 	if cli.DryRun {
-		fmt.Fprintf(os.Stderr, "Provider: %s\n", cfg.Provider)
-		fmt.Fprintf(os.Stderr, "Model: %s\n", cfg.Model)
-		fmt.Fprintf(os.Stderr, "Temperature: %.1f\n", cfg.Temperature)
-		fmt.Fprintf(os.Stderr, "Max Turns: %d\n", cfg.MaxTurns)
-		fmt.Fprintf(os.Stderr, "Tools: %v\n", cfg.Tools)
-		fmt.Fprintf(os.Stderr, "Permissions: %v\n", cfg.Permissions)
+		fmt.Fprint(os.Stderr, config.ShowConfig(cfg))
 		fmt.Fprintf(os.Stderr, "\n--- System Prompt ---\n%s\n", cfg.System)
 		return
 	}
@@ -259,7 +269,7 @@ func createProvider(cfg *config.Config) llm.Provider {
 		if cfg.System != "" {
 			opts = append(opts, anthropicProvider.WithSystem(cfg.System))
 		}
-		return anthropicProvider.New(cfg.AnthropicAPIKey, opts...)
+		return anthropicProvider.New(cfg.Providers.Anthropic.APIKey, opts...)
 
 	case "openai":
 		opts := []openaiProvider.Option{
@@ -269,7 +279,7 @@ func createProvider(cfg *config.Config) llm.Provider {
 		if cfg.System != "" {
 			opts = append(opts, openaiProvider.WithSystem(cfg.System))
 		}
-		return openaiProvider.New(cfg.OpenAIAPIKey, opts...)
+		return openaiProvider.New(cfg.Providers.OpenAI.APIKey, opts...)
 
 	case "ollama":
 		opts := []openaiProvider.Option{
@@ -278,7 +288,16 @@ func createProvider(cfg *config.Config) llm.Provider {
 		if cfg.System != "" {
 			opts = append(opts, openaiProvider.WithSystem(cfg.System))
 		}
-		return ollamaProvider.New(cfg.OllamaHost, cfg.Model, opts...)
+		return ollamaProvider.New(cfg.Providers.Ollama.Host, cfg.Model, opts...)
+
+	case "openrouter":
+		opts := []openaiProvider.Option{
+			openaiProvider.WithTemperature(cfg.Temperature),
+		}
+		if cfg.System != "" {
+			opts = append(opts, openaiProvider.WithSystem(cfg.System))
+		}
+		return openrouterProvider.New(cfg.Providers.OpenRouter.APIKey, cfg.Model, opts...)
 
 	default:
 		fatal("Unknown provider: %s", cfg.Provider)
